@@ -10,7 +10,7 @@ function M.setup(opts)
 end
 
 function M.toggle_scoreboard()
-	require("nhl.nvim").toggle_scoreboard()
+	require("nhl-nvim").toggle_scoreboard()
 end
 
 -- Create the user command
