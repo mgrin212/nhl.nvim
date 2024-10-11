@@ -1,7 +1,6 @@
 local api = vim.api
 local Split = require("nui.split")
 local Config = require("nhl-nvim.config")
-local Utils = require("nhl-nvim.utils")
 
 local M = {}
 
@@ -11,7 +10,7 @@ M.scoreboard = Split({
 	size = Config.get().window_size,
 	buf_options = {
 		modifiable = false,
-		readonly = true,
+		readonly = false,
 		filetype = "scoreboard",
 	},
 	win_options = {
@@ -28,13 +27,13 @@ M.scoreboard = Split({
 local function create_highlight_groups()
 	local colors = Config.get().colors
 	local highlights = {
-		ScoreboardBg = { bg = colors.bg, fg = colors.fg },
+		ScoreboardBg = { bg = colors.bg, fg = colors.fg, bold = true },
 		ScoreboardPeriod = { fg = colors.fg, bg = colors.period_bg, bold = true },
 		ScoreboardTime = { fg = colors.fg, bg = colors.time_bg, bold = true },
 		ScoreboardTeamName = { fg = colors.fg, bg = colors.bg, bold = true },
-		ScoreboardSOG = { fg = colors.sog, bg = colors.bg },
+		ScoreboardSOG = { fg = colors.sog, bg = colors.bg, bold = true },
 		ScoreboardScore = { fg = colors.fg, bg = colors.bg, bold = true },
-		ScoreboardBorder = { fg = colors.border, bg = colors.bg },
+		ScoreboardBorder = { fg = colors.fg, bg = colors.bg },
 	}
 
 	for name, opts in pairs(highlights) do
@@ -89,6 +88,7 @@ local function update_game(bufnr, game, current_line)
 
 	-- Function to set team info
 	local function set_team_info(line, logo, team, score, sog)
+		logo = " "
 		set_highlighted_line(
 			bufnr,
 			current_line + line,
@@ -101,6 +101,8 @@ local function update_game(bufnr, game, current_line)
 			string.format("│   SOG: %-25d │", sog),
 			"ScoreboardSOG"
 		)
+		api.nvim_buf_add_highlight(bufnr, -1, "ScoreboardScore", current_line + line + 1, 0, 1)
+		api.nvim_buf_add_highlight(bufnr, -1, "ScoreboardScore", current_line + line + 1, 34, 38)
 		api.nvim_buf_add_highlight(bufnr, -1, "ScoreboardScore", current_line + line, 28, 30)
 	end
 
@@ -115,7 +117,7 @@ end
 function M.update_scoreboard(games)
 	local bufnr = M.scoreboard.bufnr
 
-	api.nvim_buf_set_option(bufnr, "modifiable", true)
+	api.nvim_set_option_value("modifiable", true, { buf = bufnr })
 	api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
 
 	local current_line = 0
@@ -123,13 +125,16 @@ function M.update_scoreboard(games)
 	for _, game in ipairs(games) do
 		current_line = update_game(bufnr, game, current_line)
 	end
-
-	api.nvim_buf_set_option(bufnr, "modifiable", false)
+	api.nvim_set_option_value("modifiable", false, { buf = bufnr })
 end
 
 function M.mount_scoreboard()
+	local bufnr = M.scoreboard.bufnr
+
+	api.nvim_set_option_value("modifiable", true, { buf = bufnr })
 	M.scoreboard:mount()
 	create_highlight_groups()
+	api.nvim_set_option_value("modifiable", false, { buf = bufnr })
 end
 
 function M.unmount_scoreboard()
